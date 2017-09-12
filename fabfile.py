@@ -73,7 +73,7 @@ STEPS = {
 
 
 def deploy():
-    status = get_container_status('ofensivaria')
+    status = get_container_status('warframe_alert')
 
     for step in STEPS[status]:
         step()
