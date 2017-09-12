@@ -1,11 +1,21 @@
 import os
 from fabric.api import local, env
+from fabric.utils import abort
 from dockerfabric.api import docker_fabric
 
 
 env.docker_tunnel_local_port = 22024  # or any other available port above 1024 of your choice
 
 docker_client = docker_fabric()
+
+ENV_VARS = [
+    'CONSUMER_KEY',
+    'CONSUMER_SECRET',
+    'ACCESS_TOKEN',
+    'ACCESS_TOKEN_SECRET',
+    'PUSHBULLET_TOKEN',
+    'ALERT',
+]
 
 
 def get_image_name():
@@ -15,6 +25,12 @@ def get_image_name():
         image_name = '%s/%s' % (env.docker_username, image_name)
 
     return image_name
+
+
+def check():
+    missing = [e for e in ENV_VARS if not os.getenv(e)]
+    if any(missing):
+        abort('We need %s to deploy' % ', '.join(missing))
 
 
 def build():
@@ -49,26 +65,17 @@ def remove():
 
 
 def start_from_scratch():
-    env_vars = [
-        'CONSUMER_KEY',
-        'CONSUMER_SECRET',
-        'ACCESS_TOKEN',
-        'ACCESS_TOKEN_SECRET',
-        'PUSHBULLET_TOKEN',
-        'ALERTS',
-    ]
-
-    docker_env = {e: os.getenv(e) for e in env_vars}
+    docker_env = {e: os.getenv(e) for e in ENV_VARS}
 
     docker_client.create_container(get_image_name(), environment=docker_env,
                                    name='warframe_alert', detach=True)
 
 
 STEPS = {
-    'running': (build, push, stop, remove, pull, start_from_scratch, start),
-    'exited': (build, push, remove, pull, start_from_scratch, start),
-    'deleted': (build, push, pull, start_from_scratch, start),
-    'created': (build, push, pull, start_from_scratch, start)
+    'running': (check, build, push, stop, remove, pull, start_from_scratch, start),
+    'exited': (check, build, push, remove, pull, start_from_scratch, start),
+    'deleted': (check, build, push, pull, start_from_scratch, start),
+    'created': (check, build, push, pull, start_from_scratch, start)
 }
 
 
