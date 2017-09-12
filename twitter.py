@@ -31,7 +31,7 @@ async def send(alert, tweet_text):
     await pushbullet.push_note(title, body)
 
 async def process(tweet):
-    print(f'Got tweet {tweet}')
+    print(f'Got tweet {tweet.text}')
 
     for alert in ALERTS:
         if alert in tweet.text:
